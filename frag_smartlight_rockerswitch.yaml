@@ -37,7 +37,7 @@ trigger:
 action:
   - if:
     - condition: state
-      entity_id: !input interruptor
+      entity_id: !input luz
       state: 'off'
     then:
     - service: light.turn_on
