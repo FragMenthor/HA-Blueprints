@@ -37,7 +37,6 @@ trigger:
     - !input interruptor
     from: 'on'
     to: 'off'
-condition: []
 action:
   - if:
     - condition: state
