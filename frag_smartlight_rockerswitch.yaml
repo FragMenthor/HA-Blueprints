@@ -7,16 +7,13 @@ blueprint:
       description: Rocker switch with virtual smart control
       selector:
         entity:
-          filter:
-            - domain: switch
+          domain: switch
     luz:
       name: Light
       description: Smart light to control
       selector:
-        target:
-          entity:
-            filter:
-              - domain: light
+        entity:
+          domain: light
     tempo:
       name: Delay to consider
       description: The delay, in milliseconds, to consider (500-1500).
