@@ -1,0 +1,137 @@
+blueprint:
+  name: Virtual Smart Rockert Switch for control of Smart Light
+  domain: automation
+  input:
+    interruptor:
+      name: Switch
+      description: Rocker switch with virtual smart control
+      selector:
+        entity:
+          filter:
+            - domain: switch
+    luz:
+      name: Light
+      description: Smart light to control
+      selector:
+        target:
+          entity:
+            filter:
+              - domain: light
+    tempo:
+      name: Delay to consider
+      description: The delay, in milliseconds, to consider (500-1500).
+      default: 800
+      selector:
+        number:
+          min: 500
+          max: 1500
+          unit_of_measurement: ms
+trigger:
+  - platform: state
+    entity_id:
+    - !input interruptor
+    from: 'off'
+    to: 'on'
+  - platform: state
+    entity_id:
+    - !input interruptor
+    from: 'on'
+    to: 'off'
+condition: []
+action:
+  - if:
+    - condition: state
+      entity_id: !input interruptor
+      state: 'off'
+    then:
+    - service: light.turn_on
+      target:
+        entity_id: !input luz
+      data: {}
+    else:
+    - wait_for_trigger:
+      - platform: state
+        entity_id:
+        - !input interruptor
+        to:
+      timeout:
+        milliseconds: '{{ tempo }}'
+    - if:
+      - condition: template
+        value_template: '{{ wait.remaining == 0 }}'
+      then:
+      - service: light.turn_off
+        target:
+          entity_id: !input luz
+        data: {}
+      else:
+      - choose:
+        - conditions:
+          - condition: numeric_state
+            entity_id: !input luz
+            above: 178
+            attribute: brightness
+          sequence:
+          - service: light.turn_on
+            target:
+              entity_id: !input luz
+            data:
+              brightness_pct: 51
+        - conditions:
+          - condition: numeric_state
+            entity_id: !input luz
+            above: 130
+            attribute: brightness
+          sequence:
+          - service: light.turn_on
+            target:
+              entity_id: !input luz
+            data:
+              brightness_pct: 5
+        - conditions:
+          - condition: numeric_state
+            entity_id: !input luz
+            above: 129
+            below: 131
+            attribute: brightness
+          sequence:
+          - service: light.turn_on
+            target:
+              entity_id: !input luz
+            data:
+              brightness_pct: 5
+        - conditions:
+          - condition: numeric_state
+            entity_id: !input luz
+            above: 127
+            below: 130
+            attribute: brightness
+          sequence:
+          - service: light.turn_on
+            target:
+              entity_id: !input luz
+            data:
+              brightness_pct: 95
+        - conditions:
+          - condition: numeric_state
+            entity_id: !input luz
+            above: 76
+            attribute: brightness
+          sequence:
+          - service: light.turn_on
+            target:
+              entity_id: !input luz
+            data:
+              brightness_pct: 95
+        - conditions:
+          - condition: numeric_state
+            entity_id: !input luz
+            below: 77
+            attribute: brightness
+          sequence:
+          - service: light.turn_on
+            target:
+              entity_id: !input luz
+            data:
+              brightness_pct: 50
+mode: single
