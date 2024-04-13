@@ -115,6 +115,7 @@ action:
               entity_id: !input luz
             data:
               brightness_pct: 51
+              kelvin: 4200
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -125,7 +126,8 @@ action:
             target:
               entity_id: !input luz
             data:
-              brightness_pct: 5
+              brightness_pct: '{{ brilho_min }}'
+              kelvin: '{{ kelvin_min }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -137,7 +139,8 @@ action:
             target:
               entity_id: !input luz
             data:
-              brightness_pct: 5
+              brightness_pct: '{{ brilho_min }}'
+              kelvin: '{{ kelvin_min }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -149,7 +152,8 @@ action:
             target:
               entity_id: !input luz
             data:
-              brightness_pct: 95
+              brightness_pct: '{{ brilho_max }}'
+              kelvin: '{{ kelvin_max }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -160,7 +164,8 @@ action:
             target:
               entity_id: !input luz
             data:
-              brightness_pct: 95
+              brightness_pct: '{{ brilho_max }}'
+              kelvin: '{{ kelvin_max }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -172,4 +177,5 @@ action:
               entity_id: !input luz
             data:
               brightness_pct: 50
+              kelvin: 4200
 mode: single
