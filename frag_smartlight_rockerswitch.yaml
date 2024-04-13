@@ -5,7 +5,7 @@ blueprint:
     Operation:
       - If the light is OFF, 1 comutation will turn ON;
       - If the light is ON, 1 comutation withing specified time will turn OFF;
-      - If the light is ON, and there are 2 comutations withing specified time, it will cycle between 3 brightness settings: 50% → 95% → 50% → 5% → 50% → ...
+      - If the light is ON, and there are 2 comutations withing specified time, it will cycle between 3 brightness settings: 50% → 95% → 50% → 5% → 50% → ... (minumum and maximum brightness and color temperature adjustable).
   domain: automation
   input:
     interruptor:
@@ -29,15 +29,6 @@ blueprint:
           min: 500
           max: 1500
           unit_of_measurement: ms
-    brilho_max:
-      name: Maximum brightness
-      description: The maximum brightness, in percentage.
-      default: 95
-      selector:
-        number:
-          min: 75
-          max: 100
-          unit_of_measurement: %
     brilho_min:
       name: Minimum brightness
       description: The minumum brightness, in percentage.
@@ -47,9 +38,18 @@ blueprint:
           min: 1
           max: 25
           unit_of_measurement: %
+    brilho_max:
+      name: Maximum brightness
+      description: The maximum brightness, in percentage.
+      default: 95
+      selector:
+        number:
+          min: 75
+          max: 100
+          unit_of_measurement: %
     kelvin_min:
       name: Minimum Kelvin
-      description: The Kelvin setting for the minimum brigtness.
+      description: The color temperature, in Kelvin, for the minimum brigtness.
       default: 3000
       selector:
         number:
@@ -58,7 +58,7 @@ blueprint:
           unit_of_measurement: K
     kelvin_max:
       name: Maximum Kelvin
-      description: The Kelvin setting for the maximum brigtness.
+      description: The color temperature, in Kelvin, for the maximum brigtness.
       default: 5500
       selector:
         number:
@@ -115,7 +115,7 @@ action:
               entity_id: !input luz
             data:
               brightness_pct: 51
-              kelvin: 4200
+              kelvin: '{{ (kelvin_min + kelvin_max) / 2 }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -177,5 +177,6 @@ action:
               entity_id: !input luz
             data:
               brightness_pct: 50
+              kelvin: '{{ (kelvin_min + kelvin_max) / 2 }}'
               kelvin: 4200
 mode: single
