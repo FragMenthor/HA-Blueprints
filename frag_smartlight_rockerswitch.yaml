@@ -5,7 +5,7 @@ blueprint:
     Operation:
       - If the light is OFF, one comutation will turn ON;
       - If the light is ON, 1 comutation withing specified time will turn OFF;
-      - If the light is ON, and there are 2 comutations withing specified time will cycle between 3 brigtness settings: 50% -> 95% -> 50% -> 5% -> 50% -> ...
+      - If the light is ON, and there are 2 comutations withing specified time will cycle between 3 brigtness settings: 50% → 95% → 50% → 5% → 50% → ...
   domain: automation
   input:
     interruptor:
