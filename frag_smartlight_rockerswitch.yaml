@@ -21,13 +21,49 @@ blueprint:
         entity:
           domain: light
     tempo:
-      name: Delay to consider
+      name: Delay
       description: The delay, in milliseconds, to consider (500-1500).
       default: 800
       selector:
         number:
           min: 500
           max: 1500
+          unit_of_measurement: ms
+    brilho_max:
+      name: Maximum brightness
+      description: The maximum brightness, in percentage.
+      default: 95
+      selector:
+        number:
+          min: 70
+          max: 100
+          unit_of_measurement: %
+    brilho_min:
+      name: Minimum brightness
+      description: The minumum brightness, in percentage.
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: %
+    kelvin_min:
+      name: Minimum Kelvin
+      description: The Kelvin setting for the minimum brigtness.
+      default: 3000
+      selector:
+        number:
+          min: 2700
+          max: 6500
+          unit_of_measurement: ms
+    kelvin_max:
+      name: Maximum Kelvin
+      description: The Kelvin setting for the maximum brigtness.
+      default: 5500
+      selector:
+        number:
+          min: 2700
+          max: 6500
           unit_of_measurement: ms
 trigger:
   - platform: state
