@@ -1,5 +1,5 @@
 blueprint:
-  name: Smart Rocker Switch for cirtual control of Smart Light
+  name: Smart Rocker Switch for virtual control of Smart Light
   description: Blueprint to control a smartlight that is always connected to power with a tradicional rocker switch equiped with a smartmodule.
   domain: automation
   input:
