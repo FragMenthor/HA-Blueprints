@@ -35,7 +35,7 @@ blueprint:
       default: 95
       selector:
         number:
-          min: 70
+          min: 75
           max: 100
           unit_of_measurement: %
     brilho_min:
@@ -45,7 +45,7 @@ blueprint:
       selector:
         number:
           min: 1
-          max: 30
+          max: 25
           unit_of_measurement: %
     kelvin_min:
       name: Minimum Kelvin
@@ -55,7 +55,7 @@ blueprint:
         number:
           min: 2700
           max: 6500
-          unit_of_measurement: ms
+          unit_of_measurement: K
     kelvin_max:
       name: Maximum Kelvin
       description: The Kelvin setting for the maximum brigtness.
@@ -64,7 +64,7 @@ blueprint:
         number:
           min: 2700
           max: 6500
-          unit_of_measurement: ms
+          unit_of_measurement: K
 trigger:
   - platform: state
     entity_id:
