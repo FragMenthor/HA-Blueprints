@@ -178,5 +178,4 @@ action:
             data:
               brightness_pct: 50
               kelvin: '{{ (kelvin_min + kelvin_max) / 2 }}'
-              kelvin: 4200
 mode: single
