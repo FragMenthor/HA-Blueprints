@@ -76,6 +76,12 @@ trigger:
     - !input interruptor
     from: 'on'
     to: 'off'
+variables:
+  var_tempo: !input tempo
+  var_brilho_min: !input brilho_min
+  var_brilho_max: !input brilho_max
+  var_kelvin_min: !input kelvin_min
+  var_kelvin_max: !input kelvin_max
 action:
   - if:
     - condition: state
@@ -93,7 +99,7 @@ action:
         - !input interruptor
         to:
       timeout:
-        milliseconds: '{{ tempo }}'
+        milliseconds: '{{ var_tempo }}'
     - if:
       - condition: template
         value_template: '{{ wait.remaining == 0 }}'
@@ -115,7 +121,7 @@ action:
               entity_id: !input luz
             data:
               brightness_pct: 51
-              kelvin: '{{ (kelvin_min + kelvin_max) / 2 }}'
+              kelvin: '{{ (var_kelvin_min + var_kelvin_max) / 2 }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -126,8 +132,8 @@ action:
             target:
               entity_id: !input luz
             data:
-              brightness_pct: '{{ brilho_min }}'
-              kelvin: '{{ kelvin_min }}'
+              brightness_pct: '{{ var_brilho_min }}'
+              kelvin: '{{ var_kelvin_min }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -139,8 +145,8 @@ action:
             target:
               entity_id: !input luz
             data:
-              brightness_pct: '{{ brilho_min }}'
-              kelvin: '{{ kelvin_min }}'
+              brightness_pct: '{{ var_brilho_min }}'
+              kelvin: '{{ var_kelvin_min }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -152,8 +158,8 @@ action:
             target:
               entity_id: !input luz
             data:
-              brightness_pct: '{{ brilho_max }}'
-              kelvin: '{{ kelvin_max }}'
+              brightness_pct: '{{ var_brilho_max }}'
+              kelvin: '{{ var_kelvin_max }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -164,8 +170,8 @@ action:
             target:
               entity_id: !input luz
             data:
-              brightness_pct: '{{ brilho_max }}'
-              kelvin: '{{ kelvin_max }}'
+              brightness_pct: '{{ var_brilho_max }}'
+              kelvin: '{{ var_kelvin_max }}'
         - conditions:
           - condition: numeric_state
             entity_id: !input luz
@@ -177,5 +183,5 @@ action:
               entity_id: !input luz
             data:
               brightness_pct: 50
-              kelvin: '{{ (kelvin_min + kelvin_max) / 2 }}'
+              kelvin: '{{ (var_kelvin_min + var_kelvin_max) / 2 }}'
 mode: single
