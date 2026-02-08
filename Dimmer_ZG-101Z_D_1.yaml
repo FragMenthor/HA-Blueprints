@@ -10,7 +10,7 @@ blueprint:
   input:
     topic_action:
       name: Tópico MQTT (action)
-      description: Ex.: zigbee2mqtt/Dimmer Quarto Rafaela/action
+      description: "Ex.: zigbee2mqtt/Dimmer Quarto Pedro/action"
       selector:
         text:
 
@@ -28,7 +28,7 @@ blueprint:
 
     modo:
       name: Input Select do modo
-      description: Deve conter as opções correspondentes aos rótulos abaixo.
+      description: "Deve conter as opções correspondentes aos rótulos abaixo."
       selector:
         entity:
           domain: input_select
@@ -82,7 +82,7 @@ blueprint:
     # Temporizador de inatividade
     timer_inatividade:
       name: Timer de inatividade
-      description: Helper do tipo timer que será reiniciado a cada ação.
+      description: "Helper do tipo timer que será reiniciado a cada ação."
       selector:
         entity:
           domain: timer
