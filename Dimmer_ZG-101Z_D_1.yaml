@@ -53,7 +53,7 @@ blueprint:
     # Incrementos
     passo_brilho:
       name: "Incremento de brilho"
-      default: 15
+      default: 10
       selector:
         number:
           min: 1
