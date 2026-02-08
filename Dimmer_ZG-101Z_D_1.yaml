@@ -178,7 +178,8 @@ action:
                         sequence:
                           - variables:
                               hue_atual: "{{ state_attr(luz, 'hs_color')[0] | default(0) }}"
-                              sat_atual: "{{ state_attr(luz, 'hs_color')[1] | default(100) }}"
+                              # sat_atual: "{{ state_attr(luz, 'hs_color')[1] | default(100) }}"
+                              sat_atual: 100
                               hue_novo: >
                                 {% if acao == 'rotate_right' %}
                                   {{ (hue_atual + passo_cor) % 360 }}
