@@ -1,10 +1,10 @@
 blueprint:
-  name: "ZG-101Z_D_1 (Z2M) — Dimmer por Modo + Reversão por Inatividade"
+  name: "Dimmer por Modo + Reversão por Inatividade [ZG-101Z_D_1 (Z2M)]"
   description: >
-    Controla luz e TV a partir do Tuya ZG-101Z_D_1 via Zigbee2MQTT.
+    "Controla luz e TV a partir do Tuya ZG-101Z_D_1 via Zigbee2MQTT.
     Actions suportadas: single (toggle luz), double (próximo modo), hold (toggle TV),
     rotate_left/right (ajustes consoante o modo: Brilho/Cor/Temperatura).
-    Reverte automaticamente para 'Brilho' após X segundos sem qualquer ação.
+    Reverte automaticamente para 'Brilho' após X segundos sem qualquer ação (sem usar helper de timer)."
   domain: automation
 
   input:
@@ -33,7 +33,7 @@ blueprint:
         entity:
           domain: input_select
 
-    # Rótulos das opções (permitem personalizar o texto do teu input_select)
+    # Rótulos das opções (personalizáveis para coincidir com o teu input_select)
     rotulo_brilho:
       name: "Rótulo — Brilho"
       default: "Brilho"
@@ -79,16 +79,9 @@ blueprint:
           step: 10
           mode: slider
 
-    # Temporizador de inatividade
-    timer_inatividade:
-      name: "Timer de inatividade"
-      description: "Helper do tipo timer que será reiniciado a cada ação."
-      selector:
-        entity:
-          domain: timer
-
+    # Inatividade (sem helper de timer)
     segundos_reverter:
-      name: "Segundos para reverter para 'Brilho' (inatividade)"
+      name: "Segundos sem ações para reverter para 'Brilho'"
       default: 30
       selector:
         number:
@@ -97,20 +90,13 @@ blueprint:
           step: 5
           mode: slider
 
-mode: parallel
+mode: restart
 
 trigger:
-  # 1) Ações do dimmer (tópico /action publica payloads textuais: single, double, hold, rotate_left/right)
+  # O tópico /action publica payloads textuais: single, double, hold, rotate_left/right
   - platform: mqtt
     topic: !input topic_action
     id: "z2m_action"
-
-  # 2) Fim do temporizador de inatividade (gatilho independente)
-  - platform: event
-    event_type: timer.finished
-    event_data:
-      entity_id: !input timer_inatividade
-    id: "timer_finished"
 
 variables:
   luz: !input luz
@@ -124,14 +110,11 @@ variables:
   passo_temp: !input passo_temp
   segundos_reverter: !input segundos_reverter
 
-  # Payload textual do tópico /action
+  # Payload textual do tópico /action (ex.: 'single', 'rotate_left', ...)
   acao: "{{ trigger.payload | default('', true) | lower }}"
 
 action:
   - choose:
-      # -----------------------------
-      # A) BRANCH PARA AÇÕES DO DIMMER (MQTT)
-      # -----------------------------
       - conditions: "{{ trigger.id == 'z2m_action' }}"
         sequence:
           - choose:
@@ -210,34 +193,28 @@ action:
                                 - "{{ hue_novo }}"
                                 - "{{ sat_atual }}"
 
-          # --- Gestão do timer de inatividade ---
-          # Se no final o modo estiver diferente de "Brilho", (re)inicia o timer para reverter.
-          # Caso contrário, cancela o timer (não há nada para reverter).
-          - choose:
-              - conditions: "{{ states(modo) != rotulo_brilho }}"
-                sequence:
-                  - service: timer.start
+          # -----------------------------
+          # Espera por novas ações por X segundos.
+          # Se NENHUMA ação chegar (timeout) e o modo ainda não for "Brilho",
+          # então reverte para "Brilho".
+          # -----------------------------
+          - if:
+              - condition: template
+                value_template: "{{ states(modo) != rotulo_brilho }}"
+            then:
+              - wait_for_trigger:
+                  - platform: mqtt
+                    topic: !input topic_action
+                timeout: >
+                  {% set s = segundos_reverter | int %}
+                  {{ '%02d:%02d:%02d' | format(s // 3600, (s % 3600) // 60, s % 60) }}
+                continue_on_timeout: true
+              - if:
+                  - condition: template
+                    value_template: "{{ not wait.completed and states(modo) != rotulo_brilho }}"
+                then:
+                  - service: input_select.select_option
                     target:
-                      entity_id: !input timer_inatividade
+                      entity_id: "{{ modo }}"
                     data:
-                      duration: >
-                        {% set s = segundos_reverter | int %}
-                        {{ '%02d:%02d:%02d' | format(s // 3600, (s % 3600) // 60, s % 60) }}
-            default:
-              - service: timer.cancel
-                target:
-                  entity_id: !input timer_inatividade
-
-      # -----------------------------
-      # B) BRANCH PARA FIM DO TIMER (INATIVIDADE)
-      # -----------------------------
-      - conditions: "{{ trigger.id == 'timer_finished' }}"
-        sequence:
-          # Só reverte se AINDA estiver fora de "Brilho"
-          - condition: template
-            value_template: "{{ states(modo) != rotulo_brilho }}"
-          - service: input_select.select_option
-            target:
-              entity_id: "{{ modo }}"
-            data:
-              option: "{{ rotulo_brilho }}"
+                      option: "{{ rotulo_brilho }}"
