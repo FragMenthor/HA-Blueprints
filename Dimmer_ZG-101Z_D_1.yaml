@@ -152,7 +152,7 @@ action:
                             target:
                               entity_id: "{{ luz }}"
                             data:
-                              brightness_step: >
+                              brightness_step_pct: >
                                 {% if acao == 'rotate_right' %}
                                   {{ passo_brilho }}
                                 {% else %}
