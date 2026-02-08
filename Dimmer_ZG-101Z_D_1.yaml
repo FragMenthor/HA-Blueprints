@@ -1,0 +1,243 @@
+blueprint:
+  name: ZG-101Z_D_1 (Z2M) — Dimmer por Modo + Reversão por Inatividade
+  description: >
+    Controla luz e TV a partir do Tuya ZG-101Z_D_1 via Zigbee2MQTT.
+    Actions suportadas: single (toggle luz), double (próximo modo), hold (toggle TV),
+    rotate_left/right (ajustes consoante o modo: Brilho/Cor/Temperatura).
+    Reverte automaticamente para "Brilho" após X segundos sem qualquer ação.
+  domain: automation
+
+  input:
+    topic_action:
+      name: Tópico MQTT (action)
+      description: Ex.: zigbee2mqtt/Dimmer Quarto Rafaela/action
+      selector:
+        text:
+
+    luz:
+      name: Luz a controlar
+      selector:
+        entity:
+          domain: light
+
+    tv:
+      name: TV / Switch a controlar (para hold)
+      selector:
+        entity:
+          domain: switch
+
+    modo:
+      name: Input Select do modo
+      description: Deve conter as opções correspondentes aos rótulos abaixo.
+      selector:
+        entity:
+          domain: input_select
+
+    # Rótulos das opções (permitem personalizar o texto do teu input_select)
+    rotulo_brilho:
+      name: Rótulo — Brilho
+      default: "Brilho"
+      selector:
+        text:
+    rotulo_cor:
+      name: Rótulo — Cor
+      default: "Cor"
+      selector:
+        text:
+    rotulo_temp:
+      name: Rótulo — Temperatura
+      default: "Temperatura"
+      selector:
+        text:
+
+    # Incrementos
+    passo_brilho:
+      name: Incremento de brilho
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 50
+          step: 1
+          mode: slider
+    passo_cor:
+      name: Incremento de cor (Hue, graus)
+      default: 20
+      selector:
+        number:
+          min: 1
+          max: 90
+          step: 1
+          mode: slider
+    passo_temp:
+      name: Incremento de temperatura de cor (mireds)
+      default: 50
+      selector:
+        number:
+          min: 10
+          max: 200
+          step: 10
+          mode: slider
+
+    # Temporizador de inatividade
+    timer_inatividade:
+      name: Timer de inatividade
+      description: Helper do tipo timer que será reiniciado a cada ação.
+      selector:
+        entity:
+          domain: timer
+
+    segundos_reverter:
+      name: Segundos para reverter para "Brilho" (inatividade)
+      default: 30
+      selector:
+        number:
+          min: 5
+          max: 600
+          step: 5
+          mode: slider
+
+mode: parallel
+
+trigger:
+  # 1) Ações do dimmer (tópico /action publica payloads textuais: single, double, hold, rotate_left/right)
+  - platform: mqtt
+    topic: !input topic_action
+    id: z2m_action
+
+  # 2) Fim do temporizador de inatividade (gatilho independente)
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input timer_inatividade
+    id: timer_finished
+
+variables:
+  luz: !input luz
+  tv: !input tv
+  modo: !input modo
+  rotulo_brilho: !input rotulo_brilho
+  rotulo_cor: !input rotulo_cor
+  rotulo_temp: !input rotulo_temp
+  passo_brilho: !input passo_brilho
+  passo_cor: !input passo_cor
+  passo_temp: !input passo_temp
+  segundos_reverter: !input segundos_reverter
+
+  # Payload textual do tópico /action
+  acao: "{{ trigger.payload | default('', true) | lower }}"
+
+action:
+  - choose:
+      # -----------------------------
+      # A) BRANCH PARA AÇÕES DO DIMMER (MQTT)
+      # -----------------------------
+      - conditions: "{{ trigger.id == 'z2m_action' }}"
+        sequence:
+          - choose:
+
+              # single → liga/desliga luz
+              - conditions: "{{ acao == 'single' }}"
+                sequence:
+                  - service: light.toggle
+                    target:
+                      entity_id: "{{ luz }}"
+
+              # double → próximo modo
+              - conditions: "{{ acao == 'double' }}"
+                sequence:
+                  - service: input_select.select_next
+                    target:
+                      entity_id: "{{ modo }}"
+
+              # hold → toggle TV/switch
+              - conditions: "{{ acao == 'hold' }}"
+                sequence:
+                  - service: switch.toggle
+                    target:
+                      entity_id: "{{ tv }}"
+
+              # rotate_left/right → ajusta consoante modo ativo
+              - conditions: "{{ acao in ['rotate_left', 'rotate_right'] }}"
+                sequence:
+                  - choose:
+
+                      # MODO BRILHO
+                      - conditions: "{{ states(modo) == rotulo_brilho }}"
+                        sequence:
+                          - service: light.turn_on
+                            target:
+                              entity_id: "{{ luz }}"
+                            data:
+                              brightness_step: >
+                                {% if acao == 'rotate_right' %}
+                                  {{ passo_brilho }}
+                                {% else %}
+                                  {{ -passo_brilho }}
+                                {% endif %}
+
+                      # MODO TEMPERATURA
+                      - conditions: "{{ states(modo) == rotulo_temp }}"
+                        sequence:
+                          - service: light.turn_on
+                            target:
+                              entity_id: "{{ luz }}"
+                            data:
+                              color_temp_step: >
+                                {% if acao == 'rotate_right' %}
+                                  {{ passo_temp }}
+                                {% else %}
+                                  {{ -passo_temp }}
+                                {% endif %}
+
+                      # MODO COR (HUE)
+                      - conditions: "{{ states(modo) == rotulo_cor }}"
+                        sequence:
+                          - variables:
+                              hue_atual: "{{ state_attr(luz, 'hs_color')[0] | default(0) }}"
+                              sat_atual: "{{ state_attr(luz, 'hs_color')[1] | default(100) }}"
+                              hue_novo: >
+                                {% if acao == 'rotate_right' %}
+                                  {{ (hue_atual + passo_cor) % 360 }}
+                                {% else %}
+                                  {{ (hue_atual - passo_cor) % 360 }}
+                                {% endif %}
+                          - service: light.turn_on
+                            target:
+                              entity_id: "{{ luz }}"
+                            data:
+                              hs_color:
+                                - "{{ hue_novo }}"
+                                - "{{ sat_atual }}"
+
+          # --- Gestão do timer de inatividade ---
+          # Se no final o modo estiver diferente de "Brilho", (re)inicia o timer para reverter.
+          # Caso contrário, cancela o timer (não há nada para reverter).
+          - choose:
+              - conditions: "{{ states(modo) != rotulo_brilho }}"
+                sequence:
+                  - service: timer.start
+                    target:
+                      entity_id: !input timer_inatividade
+                    data:
+                      duration: >
+                        {% set s = segundos_reverter | int %}
+                        {{ '%02d:%02d:%02d' | format(s // 3600, (s % 3600) // 60, s % 60) }}
+            default:
+              - service: timer.cancel
+                target:
+                  entity_id: !input timer_inatividade
+
+      # -----------------------------
+      # B) BRANCH PARA FIM DO TIMER (INATIVIDADE)
+      # -----------------------------
+      - conditions: "{{ trigger.id == 'timer_finished' }}"
+        sequence:
+          # Só reverte se AINDA estiver fora de "Brilho"
+          - condition: template
+            value_template: "{{ states(modo) != rotulo_brilho }}"
+          - service: input_select.select_option
+            target:
+              entity_id: "{{ modo }}"
+            data:
+              option: "{{ rotulo_brilho }}"
