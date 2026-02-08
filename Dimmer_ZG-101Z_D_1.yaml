@@ -1,33 +1,33 @@
 blueprint:
-  name: ZG-101Z_D_1 (Z2M) — Dimmer por Modo + Reversão por Inatividade
+  name: "ZG-101Z_D_1 (Z2M) — Dimmer por Modo + Reversão por Inatividade"
   description: >
     Controla luz e TV a partir do Tuya ZG-101Z_D_1 via Zigbee2MQTT.
     Actions suportadas: single (toggle luz), double (próximo modo), hold (toggle TV),
     rotate_left/right (ajustes consoante o modo: Brilho/Cor/Temperatura).
-    Reverte automaticamente para "Brilho" após X segundos sem qualquer ação.
+    Reverte automaticamente para 'Brilho' após X segundos sem qualquer ação.
   domain: automation
 
   input:
     topic_action:
-      name: Tópico MQTT (action)
-      description: "Ex.: zigbee2mqtt/Dimmer Quarto Pedro/action"
+      name: "Tópico MQTT (action)"
+      description: "Ex.: zigbee2mqtt/Dimmer Quarto Rafaela/action"
       selector:
-        text:
+        text: {}
 
     luz:
-      name: Luz a controlar
+      name: "Luz a controlar"
       selector:
         entity:
           domain: light
 
     tv:
-      name: TV / Switch a controlar (para hold)
+      name: "TV / Switch a controlar (para hold)"
       selector:
         entity:
           domain: switch
 
     modo:
-      name: Input Select do modo
+      name: "Input Select do modo"
       description: "Deve conter as opções correspondentes aos rótulos abaixo."
       selector:
         entity:
@@ -35,24 +35,24 @@ blueprint:
 
     # Rótulos das opções (permitem personalizar o texto do teu input_select)
     rotulo_brilho:
-      name: Rótulo — Brilho
+      name: "Rótulo — Brilho"
       default: "Brilho"
       selector:
-        text:
+        text: {}
     rotulo_cor:
-      name: Rótulo — Cor
+      name: "Rótulo — Cor"
       default: "Cor"
       selector:
-        text:
+        text: {}
     rotulo_temp:
-      name: Rótulo — Temperatura
+      name: "Rótulo — Temperatura"
       default: "Temperatura"
       selector:
-        text:
+        text: {}
 
     # Incrementos
     passo_brilho:
-      name: Incremento de brilho
+      name: "Incremento de brilho"
       default: 15
       selector:
         number:
@@ -61,7 +61,7 @@ blueprint:
           step: 1
           mode: slider
     passo_cor:
-      name: Incremento de cor (Hue, graus)
+      name: "Incremento de cor (Hue, graus)"
       default: 20
       selector:
         number:
@@ -70,7 +70,7 @@ blueprint:
           step: 1
           mode: slider
     passo_temp:
-      name: Incremento de temperatura de cor (mireds)
+      name: "Incremento de temperatura de cor (mireds)"
       default: 50
       selector:
         number:
@@ -81,14 +81,14 @@ blueprint:
 
     # Temporizador de inatividade
     timer_inatividade:
-      name: Timer de inatividade
+      name: "Timer de inatividade"
       description: "Helper do tipo timer que será reiniciado a cada ação."
       selector:
         entity:
           domain: timer
 
     segundos_reverter:
-      name: Segundos para reverter para "Brilho" (inatividade)
+      name: "Segundos para reverter para 'Brilho' (inatividade)"
       default: 30
       selector:
         number:
@@ -103,14 +103,14 @@ trigger:
   # 1) Ações do dimmer (tópico /action publica payloads textuais: single, double, hold, rotate_left/right)
   - platform: mqtt
     topic: !input topic_action
-    id: z2m_action
+    id: "z2m_action"
 
   # 2) Fim do temporizador de inatividade (gatilho independente)
   - platform: event
     event_type: timer.finished
     event_data:
       entity_id: !input timer_inatividade
-    id: timer_finished
+    id: "timer_finished"
 
 variables:
   luz: !input luz
