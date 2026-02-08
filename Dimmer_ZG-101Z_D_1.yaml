@@ -52,12 +52,12 @@ blueprint:
 
     # Incrementos
     passo_brilho:
-      name: "Incremento de brilho"
+      name: "Incremento de brilho (%)"
       default: 10
       selector:
         number:
           min: 1
-          max: 50
+          max: 100
           step: 1
           mode: slider
     passo_cor:
