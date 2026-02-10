@@ -1,10 +1,13 @@
 blueprint:
   name: "Dimmer por Modo + Reversão por Inatividade [ZG-101Z_D_1 (Z2M)]"
   description: >
-    "Controla luz e TV a partir do Tuya ZG-101Z_D_1 via Zigbee2MQTT.
-    Actions suportadas: single (toggle luz), double (próximo modo), hold (toggle TV),
-    rotate_left/right (ajustes consoante o modo: Brilho/Cor/Temperatura).
-    Reverte automaticamente para 'Brilho' após X segundos sem qualquer ação (sem usar helper de timer)."
+    Controla luz e TV a partir do Tuya ZG-101Z_D_1 via Zigbee2MQTT.
+    Actions: single, double, hold, rotate_left/right.
+    Inclui:
+    • Reversão automática após X segundos sem ações
+    • Reset do modo para Brilho quando a luz desliga
+    • Modo Cor: primeira alteração força brilho a 100%
+    • Modo Temperatura: incremento calculado manualmente (mireds)
   domain: automation
 
   input:
@@ -28,75 +31,76 @@ blueprint:
 
     modo:
       name: "Input Select do modo"
-      description: "Deve conter as opções correspondentes aos rótulos abaixo."
       selector:
         entity:
           domain: input_select
 
-    # Rótulos das opções (personalizáveis para coincidir com o teu input_select)
     rotulo_brilho:
       name: "Rótulo — Brilho"
       default: "Brilho"
       selector:
         text: {}
+
     rotulo_cor:
       name: "Rótulo — Cor"
       default: "Cor"
       selector:
         text: {}
+
     rotulo_temp:
       name: "Rótulo — Temperatura"
       default: "Temperatura"
       selector:
         text: {}
 
-    # Incrementos
     passo_brilho:
-      name: "Incremento de brilho (%)"
+      name: "Incremento brilho (%)"
       default: 10
       selector:
         number:
           min: 1
           max: 100
           step: 1
-          mode: slider
+
     passo_cor:
-      name: "Incremento de cor (Hue, graus)"
+      name: "Incremento cor (Hue graus)"
       default: 20
       selector:
         number:
           min: 1
           max: 90
           step: 1
-          mode: slider
+
     passo_temp:
-      name: "Incremento de temperatura de cor (mireds)"
-      default: 50
+      name: "Incremento temperatura (mireds)"
+      default: 25
       selector:
         number:
-          min: 10
+          min: 5
           max: 200
-          step: 10
-          mode: slider
+          step: 5
 
-    # Inatividade (sem helper de timer)
     segundos_reverter:
-      name: "Segundos sem ações para reverter para 'Brilho'"
+      name: "Timeout para reverter para Brilho"
       default: 30
       selector:
         number:
           min: 5
           max: 600
           step: 5
-          mode: slider
 
 mode: restart
 
 trigger:
-  # O tópico /action publica payloads textuais: single, double, hold, rotate_left/right
   - platform: mqtt
     topic: !input topic_action
     id: "z2m_action"
+
+  # Trigger adicional → quando luz desliga, forçar modo Brilho
+  - platform: state
+    entity_id: !input luz
+    to: "off"
+    id: "luz_desligou"
 
 variables:
   luz: !input luz
@@ -109,17 +113,31 @@ variables:
   passo_cor: !input passo_cor
   passo_temp: !input passo_temp
   segundos_reverter: !input segundos_reverter
-
-  # Payload textual do tópico /action (ex.: 'single', 'rotate_left', ...)
   acao: "{{ trigger.payload | default('', true) | lower }}"
 
 action:
   - choose:
+
+      # ---------------------------
+      # 1) Luz desligou → reset modo
+      # ---------------------------
+      - conditions: "{{ trigger.id == 'luz_desligou' }}"
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: "{{ modo }}"
+            data:
+              option: "{{ rotulo_brilho }}"
+
+      # ---------------------------
+      # 2) Ações Z2M
+      # ---------------------------
       - conditions: "{{ trigger.id == 'z2m_action' }}"
         sequence:
+
           - choose:
 
-              # single → liga/desliga luz
+              # single → toggle luz
               - conditions: "{{ acao == 'single' }}"
                 sequence:
                   - service: light.toggle
@@ -133,19 +151,21 @@ action:
                     target:
                       entity_id: "{{ modo }}"
 
-              # hold → toggle TV/switch
+              # hold → toggle TV
               - conditions: "{{ acao == 'hold' }}"
                 sequence:
                   - service: switch.toggle
                     target:
                       entity_id: "{{ tv }}"
 
-              # rotate_left/right → ajusta consoante modo ativo
-              - conditions: "{{ acao in ['rotate_left', 'rotate_right'] }}"
+              # rotate
+              - conditions: "{{ acao in ['rotate_left','rotate_right'] }}"
                 sequence:
                   - choose:
 
+                      # ------------------------------
                       # MODO BRILHO
+                      # ------------------------------
                       - conditions: "{{ states(modo) == rotulo_brilho }}"
                         sequence:
                           - service: light.turn_on
@@ -159,33 +179,57 @@ action:
                                   {{ -passo_brilho }}
                                 {% endif %}
 
-                      # MODO TEMPERATURA
+                      # ------------------------------
+                      # MODO TEMPERATURA — mireds manual
+                      # ------------------------------
                       - conditions: "{{ states(modo) == rotulo_temp }}"
                         sequence:
+                          - variables:
+                              mired_atual: >
+                                {{ state_attr(luz,'color_temp') 
+                                   | default(300) }}
+                              mired_novo: >
+                                {% set minv = 153 %}
+                                {% set maxv = 500 %}
+                                {% if acao == 'rotate_right' %}
+                                  {% set v = mired_atual + passo_temp %}
+                                {% else %}
+                                  {% set v = mired_atual - passo_temp %}
+                                {% endif %}
+                                {{ [maxv, [minv, v]|max]|min }}
                           - service: light.turn_on
                             target:
                               entity_id: "{{ luz }}"
                             data:
-                              color_temp_step: >
-                                {% if acao == 'rotate_right' %}
-                                  {{ passo_temp }}
-                                {% else %}
-                                  {{ -passo_temp }}
-                                {% endif %}
+                              color_temp: "{{ mired_novo }}"
 
-                      # MODO COR (HUE)
+                      # ------------------------------
+                      # MODO COR — primeiro toque → brilho = 100%
+                      # ------------------------------
                       - conditions: "{{ states(modo) == rotulo_cor }}"
                         sequence:
                           - variables:
-                              hue_atual: "{{ state_attr(luz, 'hs_color')[0] | default(0) }}"
-                              # sat_atual: "{{ state_attr(luz, 'hs_color')[1] | default(100) }}"
+                              hue_atual: "{{ state_attr(luz,'hs_color')[0] | default(0) }}"
                               sat_atual: 100
+                              brilho_atual: "{{ state_attr(luz,'brightness') | default(255) }}"
+                              forcar_brilho: "{{ brilho_atual < 250 or states(luz)=='off' }}"
                               hue_novo: >
                                 {% if acao == 'rotate_right' %}
                                   {{ (hue_atual + passo_cor) % 360 }}
                                 {% else %}
                                   {{ (hue_atual - passo_cor) % 360 }}
                                 {% endif %}
+
+                          # Se for o primeiro movimento → brilho = 100%
+                          - if: "{{ forcar_brilho }}"
+                            then:
+                              - service: light.turn_on
+                                target:
+                                  entity_id: "{{ luz }}"
+                                data:
+                                  brightness: 255
+
+                          # Agora altera HUE
                           - service: light.turn_on
                             target:
                               entity_id: "{{ luz }}"
@@ -194,25 +238,20 @@ action:
                                 - "{{ hue_novo }}"
                                 - "{{ sat_atual }}"
 
-          # -----------------------------
-          # Espera por novas ações por X segundos.
-          # Se NENHUMA ação chegar (timeout) e o modo ainda não for "Brilho",
-          # então reverte para "Brilho".
-          # -----------------------------
-          - if:
-              - condition: template
-                value_template: "{{ states(modo) != rotulo_brilho }}"
+          # ----------------------------------------------
+          # Reversão automática para modo "Brilho"
+          # ----------------------------------------------
+          - if: "{{ states(modo) != rotulo_brilho }}"
             then:
               - wait_for_trigger:
                   - platform: mqtt
                     topic: !input topic_action
                 timeout: >
-                  {% set s = segundos_reverter | int %}
-                  {{ '%02d:%02d:%02d' | format(s // 3600, (s % 3600) // 60, s % 60) }}
+                  {% set s = segundos_reverter|int %}
+                  {{ '%02d:%02d:%02d'|format(s//3600,(s%3600)//60,s%60) }}
                 continue_on_timeout: true
-              - if:
-                  - condition: template
-                    value_template: "{{ not wait.completed and states(modo) != rotulo_brilho }}"
+
+              - if: "{{ not wait.completed and states(modo) != rotulo_brilho }}"
                 then:
                   - service: input_select.select_option
                     target:
