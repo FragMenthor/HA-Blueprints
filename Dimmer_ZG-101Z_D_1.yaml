@@ -73,7 +73,7 @@ blueprint:
 
     passo_temp:
       name: "Incremento temperatura (mireds)"
-      default: 25
+      default: 50
       selector:
         number:
           min: 5
@@ -192,9 +192,9 @@ action:
                                 {% set minv = 153 %}
                                 {% set maxv = 500 %}
                                 {% if acao == 'rotate_right' %}
-                                  {% set v = mired_atual + passo_temp %}
-                                {% else %}
                                   {% set v = mired_atual - passo_temp %}
+                                {% else %}
+                                  {% set v = mired_atual + passo_temp %}
                                 {% endif %}
                                 {{ [maxv, [minv, v]|max]|min }}
                           - service: light.turn_on
