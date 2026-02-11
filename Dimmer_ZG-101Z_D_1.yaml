@@ -1,7 +1,7 @@
 blueprint:
   name: "Dimmer por Modo + Reversão por Inatividade [ZG-101Z_D_1 (Z2M)]"
   description: >
-    Controla luz e TV a partir do Tuya ZG-101Z_D_1 via Zigbee2MQTT.
+    Controla luz e switch a com ZG-101Z_D_1 via Zigbee2MQTT.
     Actions: single, double, hold, rotate_left/right.
     Inclui:
     • Reversão automática após X segundos sem ações
